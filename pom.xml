@@ -34,7 +34,6 @@
             <artifactId>cloudera-manager-api</artifactId>
             <version>${cloudera-manager-api.version}</version>
         </dependency>
-
     </dependencies>
 
     <build>

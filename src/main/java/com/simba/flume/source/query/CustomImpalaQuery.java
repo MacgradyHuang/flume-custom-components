@@ -1,67 +1,124 @@
 package com.simba.flume.source.query;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonInclude
 public class CustomImpalaQuery {
+    @JsonProperty("query_id")
     private String queryId;
+    @JsonProperty("statement")
     private String statement;
+    @JsonProperty("query_type")
     private String queryType;
+    @JsonProperty("query_state")
     private String queryState;
+    @JsonProperty("start_time")
     private String startTime;
+    @JsonProperty("end_time")
     private String endTime;
+    @JsonProperty("rows_produced")
     private String rowsProduced;
+    @JsonProperty("thread_cpu_time_percentage")
     private String threadCpuTimePercentage;
+    @JsonProperty("thread_network_receive_wait_time")
     private String threadNetworkReceiveWaitTime;
+    @JsonProperty("thread_cpu_time")
     private String threadCpuTime;
+    @JsonProperty("hdfs_average_scan_range")
     private String hdfsAverageScanRange;
+    @JsonProperty("bytes_streamed")
     private String bytesStreamed;
+    @JsonProperty("hdfs_bytes_read_short_circuit")
     private String hdfsBytesReadShortCircuit;
+    @JsonProperty("hdfs_bytes_read_from_cache")
     private String hdfsBytesReadFromCache;
+    @JsonProperty("hdfs_bytes_read")
     private String hdfsBytesRead;
+    @JsonProperty("query_status")
     private String queryStatus;
+    @JsonProperty("hdfs_scanner_average_bytes_read_per_second")
     private String hdfsScannerAverageBytesReadPerSecond;
+    @JsonProperty("thread_network_receive_wait_time_percentage")
     private String threadNetworkReceiveWaitTimePercentage;
+    @JsonProperty("oom")
     private String oom;
+    @JsonProperty("planning_wait_time_percentage")
     private String planningWaitTimePercentage;
+    @JsonProperty("admission_wait")
     private String admissionWait;
+    @JsonProperty("connected_user")
     private String connectedUser;
+    @JsonProperty("stats_missing")
     private String statsMissing;
+    @JsonProperty("planning_wait_time")
     private String planningWaitTime;
+    @JsonProperty("memory_aggregate_peak")
     private String memoryAggregatePeak;
+    @JsonProperty("client_fetch_wait_time_percentage")
     private String clientFetchWaitTimePercentage;
+    @JsonProperty("memory_per_node_peak_node")
     private String memoryPerNodePeakNode;
+    @JsonProperty("session_type")
     private String sessionType;
+    @JsonProperty("hdfs_bytes_read_remote")
     private String hdfsBytesReadRemote;
+    @JsonProperty("estimated_per_node_peak_memory")
     private String estimatedPerNodePeakMemory;
+    @JsonProperty("hdfs_bytes_read_local_percentage")
     private String hdfsBytesReadLocalPercentage;
+    @JsonProperty("hdfs_bytes_read_from_cache_percentage")
     private String hdfsBytesReadFromCachePercentage;
+    @JsonProperty("client_fetch_wait_time")
     private String clientFetchWaitTime;
+    @JsonProperty("file_formats")
     private String fileFormats;
+    @JsonProperty("admission_result")
     private String admissionResult;
+    @JsonProperty("pool")
     private String pool;
+    @JsonProperty("original_user")
     private String originalUser;
+    @JsonProperty("session_id")
     private String sessionId;
+    @JsonProperty("hdfs_bytes_read_remote_percentage")
     private String hdfsBytesReadRemotePercentage;
+    @JsonProperty("stats_corrupt")
     private String statsCorrupt;
+    @JsonProperty("hdfs_bytes_read_short_circuit_percentage")
     private String hdfsBytesReadShortCircuitPercentage;
+    @JsonProperty("memory_accrual")
     private String memoryAccrual;
+    @JsonProperty("thread_total_time")
     private String threadTotalTime;
+    @JsonProperty("thread_network_send_wait_time_percentage")
     private String threadNetworkSendWaitTimePercentage;
+    @JsonProperty("impala_version")
     private String impalaVersion;
+    @JsonProperty("network_address")
     private String networkAddress;
+    @JsonProperty("thread_storage_wait_time_percentage")
     private String threadStorageWaitTimePercentage;
+    @JsonProperty("hdfs_bytes_read_local")
     private String hdfsBytesReadLocal;
+    @JsonProperty("memory_per_node_peak")
     private String memoryPerNodePeak;
+    @JsonProperty("thread_network_send_wait_time")
     private String threadNetworkSendWaitTime;
+    @JsonProperty("thread_storage_wait_time")
     private String threadStorageWaitTime;
+    @JsonProperty("user")
     private String user;
+    @JsonProperty("coordinator")
     private String coordinator;
+    @JsonProperty("details_available")
     private String detailsAvailable;
+    @JsonProperty("database")
     private String database;
+    @JsonProperty("duration_millis")
     private String durationMillis;
+    @JsonProperty("details")
     private String details;
-
-    public CustomImpalaQuery() {
-
-    }
 
     public String getQueryId() {
         return queryId;
@@ -517,68 +574,5 @@ public class CustomImpalaQuery {
 
     public void setDetails(String details) {
         this.details = details;
-    }
-
-    @Override
-    public String toString() {
-        return "{" +
-                "queryId='" + queryId + '\'' +
-                ", statement='" + statement + '\'' +
-                ", queryType='" + queryType + '\'' +
-                ", queryState='" + queryState + '\'' +
-                ", startTime='" + startTime + '\'' +
-                ", endTime='" + endTime + '\'' +
-                ", rowsProduced='" + rowsProduced + '\'' +
-                ", threadCpuTimePercentage='" + threadCpuTimePercentage + '\'' +
-                ", threadNetworkReceiveWaitTime='" + threadNetworkReceiveWaitTime + '\'' +
-                ", threadCpuTime='" + threadCpuTime + '\'' +
-                ", hdfsAverageScanRange='" + hdfsAverageScanRange + '\'' +
-                ", bytesStreamed='" + bytesStreamed + '\'' +
-                ", hdfsBytesReadShortCircuit='" + hdfsBytesReadShortCircuit + '\'' +
-                ", hdfsBytesReadFromCache='" + hdfsBytesReadFromCache + '\'' +
-                ", hdfsBytesRead='" + hdfsBytesRead + '\'' +
-                ", queryStatus='" + queryStatus + '\'' +
-                ", hdfsScannerAverageBytesReadPerSecond='" + hdfsScannerAverageBytesReadPerSecond + '\'' +
-                ", threadNetworkReceiveWaitTimePercentage='" + threadNetworkReceiveWaitTimePercentage + '\'' +
-                ", oom='" + oom + '\'' +
-                ", planningWaitTimePercentage='" + planningWaitTimePercentage + '\'' +
-                ", admissionWait='" + admissionWait + '\'' +
-                ", connectedUser='" + connectedUser + '\'' +
-                ", statsMissing='" + statsMissing + '\'' +
-                ", planningWaitTime='" + planningWaitTime + '\'' +
-                ", memoryAggregatePeak='" + memoryAggregatePeak + '\'' +
-                ", clientFetchWaitTimePercentage='" + clientFetchWaitTimePercentage + '\'' +
-                ", memoryPerNodePeakNode='" + memoryPerNodePeakNode + '\'' +
-                ", sessionType='" + sessionType + '\'' +
-                ", hdfsBytesReadRemote='" + hdfsBytesReadRemote + '\'' +
-                ", estimatedPerNodePeakMemory='" + estimatedPerNodePeakMemory + '\'' +
-                ", hdfsBytesReadLocalPercentage='" + hdfsBytesReadLocalPercentage + '\'' +
-                ", hdfsBytesReadFromCachePercentage='" + hdfsBytesReadFromCachePercentage + '\'' +
-                ", clientFetchWaitTime='" + clientFetchWaitTime + '\'' +
-                ", fileFormats='" + fileFormats + '\'' +
-                ", admissionResult='" + admissionResult + '\'' +
-                ", pool='" + pool + '\'' +
-                ", originalUser='" + originalUser + '\'' +
-                ", sessionId='" + sessionId + '\'' +
-                ", hdfsBytesReadRemotePercentage='" + hdfsBytesReadRemotePercentage + '\'' +
-                ", statsCorrupt='" + statsCorrupt + '\'' +
-                ", hdfsBytesReadShortCircuitPercentage='" + hdfsBytesReadShortCircuitPercentage + '\'' +
-                ", memoryAccrual='" + memoryAccrual + '\'' +
-                ", threadTotalTime='" + threadTotalTime + '\'' +
-                ", threadNetworkSendWaitTimePercentage='" + threadNetworkSendWaitTimePercentage + '\'' +
-                ", impalaVersion='" + impalaVersion + '\'' +
-                ", networkAddress='" + networkAddress + '\'' +
-                ", threadStorageWaitTimePercentage='" + threadStorageWaitTimePercentage + '\'' +
-                ", hdfsBytesReadLocal='" + hdfsBytesReadLocal + '\'' +
-                ", memoryPerNodePeak='" + memoryPerNodePeak + '\'' +
-                ", threadNetworkSendWaitTime='" + threadNetworkSendWaitTime + '\'' +
-                ", threadStorageWaitTime='" + threadStorageWaitTime + '\'' +
-                ", user='" + user + '\'' +
-                ", coordinator='" + coordinator + '\'' +
-                ", detailsAvailable='" + detailsAvailable + '\'' +
-                ", database='" + database + '\'' +
-                ", durationMillis='" + durationMillis + '\'' +
-                ", details='" + details + '\'' +
-                '}';
     }
 }

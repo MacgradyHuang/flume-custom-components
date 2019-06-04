@@ -6,11 +6,11 @@ import com.cloudera.api.model.ApiImpalaQuery;
 import com.cloudera.api.model.ApiImpalaQueryDetailsResponse;
 import com.cloudera.api.model.ApiImpalaQueryResponse;
 import com.cloudera.api.v4.ImpalaQueriesResource;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.flume.ChannelException;
 import org.apache.flume.Context;
-import org.apache.flume.Event;
 import org.apache.flume.EventDrivenSource;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.event.EventBuilder;
@@ -19,17 +19,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.simba.flume.source.query.Constants.*;
+
 public class ClouderaManagerImpalaQuerySource extends AbstractSource implements Configurable, EventDrivenSource {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ClouderaManagerImpalaQuerySource.class);
-    private static final Integer CORE_POOL_SIZE = 12;
     private AtomicBoolean threadShouldStop;
     private Thread thread;
     private ScheduledExecutorService handlerService;
@@ -93,7 +93,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
     public synchronized void start() {
         LOGGER.info("Source starting");
 
-        this.handlerService = Executors.newScheduledThreadPool(CORE_POOL_SIZE, (new ThreadFactoryBuilder()).setNameFormat("cm-query-source-handler-%d").build());
+        this.handlerService = Executors.newScheduledThreadPool(HANDLER_SERVICE_CORE_POOL_SIZE, (new ThreadFactoryBuilder()).setNameFormat("cm-query-source-handler-%d").build());
         ClouderaManagerImpalaQuerySource.TaskContext context = new ClouderaManagerImpalaQuerySource.TaskContext();
         this.threadShouldStop.set(false);
         context.handlerService = this.handlerService;
@@ -111,7 +111,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
 
         this.threadShouldStop.set(true);
         if (this.thread != null) {
-            LOGGER.debug("Stopping handler thread");
+            LOGGER.debug("Handler thread stopping");
 
             while(this.thread.isAlive()) {
                 try {
@@ -124,12 +124,12 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 }
             }
 
-            LOGGER.debug("Stopped handler thread");
+            LOGGER.debug("Handler thread stopped");
         }
 
         if (this.handlerService != null) {
             this.handlerService.shutdown();
-            LOGGER.debug("Waiting for handler service to stop");
+            LOGGER.debug("Handler service stopping");
 
             try {
                 this.handlerService.awaitTermination(500L, TimeUnit.MILLISECONDS);
@@ -151,8 +151,6 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
     }
 
     private static class CustomTaskHandler implements Runnable {
-        private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
         private ClouderaManagerImpalaQuerySource source;
         private ImpalaQueriesResource queryReource;
 
@@ -186,17 +184,10 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 // get query scope
                 QueryScope scope = getQueryScope();
 
-                ClouderaManagerImpalaQuerySource.LOGGER.info("Current query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime());
+                ClouderaManagerImpalaQuerySource.LOGGER.info("Current query scope: " + SDF.format(toCCT(scope.getStartTime())) + " ~ " + SDF.format(toCCT(scope.getEndTime())));
 
                 // get query summary and details
                 processEvent(scope);
-
-//                Random random = new Random();
-//                int randomNum = random.nextInt(100);
-//                String text = "Hello World2 :" + random.nextInt(100);  //实际需要传的内容
-//                HashMap<String, String> header = new HashMap<>();
-//                header.put("id", Integer.toString(randomNum));   //将id--value放入到header中
-//                this.source.getChannelProcessor().processEvent(EventBuilder.withBody(text, Charset.forName("UTF-8"), header));//prcessEvent()将数据传上去
             } catch (ChannelException e) {
                 ClouderaManagerImpalaQuerySource.LOGGER.debug("Channel exception", e);
             }
@@ -209,28 +200,35 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             calendar.set(Calendar.SECOND, 0);
             calendar.set(Calendar.MILLISECOND, 0);
             // set timezone
-            calendar.add(Calendar.HOUR_OF_DAY, -8);
+            calendar.add(Calendar.HOUR_OF_DAY, -TIME_DIFF);
 
             // get query start time
             Date dateTo = calendar.getTime();
             String strDateTo = SDF.format(dateTo);
 
             // get query end time, default to query one hour per scheduler
-            calendar.add(Calendar.MINUTE, -1);
+            calendar.add(Calendar.MINUTE, -MINUTES_PER_TASK);
             Date dateFrom = calendar.getTime();
             String strDateFrom = SDF.format(dateFrom);
 
-            return new QueryScope(strDateFrom, strDateTo);
+            return new QueryScope(strDateFrom, strDateTo, dateFrom, dateTo);
+        }
+
+        private Date toCCT(Date date) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(date);
+            calendar.add(Calendar.HOUR_OF_DAY, +TIME_DIFF);
+            return calendar.getTime();
         }
 
         private void processEvent(QueryScope scope) {
             Date start = new Date();
 
-            int offset = 0;
+            int i = 0;
             Map<String, ApiImpalaQuery> querySummaryMap = new HashMap<>();
-            // get query ids
+            // get query summary
             while (true) {
-                ApiImpalaQueryResponse response = this.queryReource.getImpalaQueries(this.source.getCmServiceName(), "", scope.getStartTime(), scope.getEndTime(), 500, offset++);
+                ApiImpalaQueryResponse response = this.queryReource.getImpalaQueries(this.source.getCmServiceName(), "", scope.getStrStartTime(), scope.getStrEndTime(), QUERY_LIMIT, QUERY_LIMIT * i++);
                 List<ApiImpalaQuery> queries = response.getQueries();
                 if (queries.isEmpty()) {
                     break;
@@ -241,7 +239,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 }
             }
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Query summary numbers: " + querySummaryMap.size());
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + SDF.format(toCCT(scope.getStartTime())) + " ~ " + SDF.format(toCCT(scope.getEndTime())) + ", Query summary numbers: " + querySummaryMap.size());
 
             // get query details
             Map<String, String> queryDetailsMap = new HashMap<>();
@@ -250,10 +248,11 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 queryDetailsMap.put(queryId, response.getDetails());
             }
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Query details numbers: " + queryDetailsMap.size());
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + SDF.format(toCCT(scope.getStartTime())) + " ~ " + SDF.format(toCCT(scope.getEndTime())) + ", Query details numbers: " + queryDetailsMap.size());
 
             CustomImpalaQuery query = new CustomImpalaQuery();
             Map<String, String> headers = new HashMap<>();
+            ObjectMapper objectMapper = new ObjectMapper();
             for (String queryId : querySummaryMap.keySet()) {
                 try {
                     ApiImpalaQuery summary = querySummaryMap.get(queryId);
@@ -266,9 +265,8 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                     query.setStartTime(startTime != null ? SDF.format(startTime) : "");
                     Date endTime = summary.getEndTime();
                     query.setEndTime(endTime != null ? SDF.format(endTime) : "");
-
                     Long rowsProduced = summary.getRowsProduced();
-                    query.setRowsProduced(rowsProduced != null ? rowsProduced.toString() : "");
+                    query.setRowsProduced(rowsProduced != null ? rowsProduced.toString() : "0");
 
                     Map<String, String> attributes = summary.getAttributes();
                     query.setThreadCpuTimePercentage(attributes.get("thread_cpu_time_percentage"));
@@ -324,30 +322,45 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                     query.setDetails(queryDetailsMap.get(queryId));
 
                     headers.put("query_id", queryId);
-                    this.source.getChannelProcessor().processEvent(EventBuilder.withBody(query.toString(), Charset.forName("UTF-8"), headers));
+                    headers.put("year", SDF_YEAR.format(startTime));
+                    headers.put("month", SDF_MONTH.format(startTime));
+                    headers.put("day", SDF_DAY.format(startTime));
+                    this.source.getChannelProcessor().processEvent(EventBuilder.withBody(objectMapper.writeValueAsString(query), Charset.forName("UTF-8"), headers));
                 } catch (Exception e) {
                     ClouderaManagerImpalaQuerySource.LOGGER.error("Transform [" + queryId + "] exception", e);
                 }
             }
             Date end = new Date();
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Spent " + (end.getTime() - start.getTime()) / 1000 + "s");
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + SDF.format(toCCT(scope.getStartTime())) + " ~ " + SDF.format(toCCT(scope.getEndTime())) + ", Spent " + (end.getTime() - start.getTime()) / 1000 + "s");
         }
 
         private static class QueryScope {
-            private String startTime;
-            private String endTime;
+            private String strStartTime;
+            private String strEndTime;
+            private Date startTime;
+            private Date endTime;
 
-            QueryScope(String startTime, String endTime) {
+            QueryScope(String strStartTime, String strEndTime, Date startTime, Date endTime) {
+                this.strStartTime = strStartTime;
+                this.strEndTime = strEndTime;
                 this.startTime = startTime;
                 this.endTime = endTime;
             }
 
-            public String getStartTime() {
+            public String getStrStartTime() {
+                return strStartTime;
+            }
+
+            public String getStrEndTime() {
+                return strEndTime;
+            }
+
+            public Date getStartTime() {
                 return startTime;
             }
 
-            public String getEndTime() {
+            public Date getEndTime() {
                 return endTime;
             }
         }
@@ -362,7 +375,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             ClouderaManagerImpalaQuerySource.LOGGER.debug("Task context starting");
 
             try {
-                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), 0, 30, TimeUnit.MINUTES);
+                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), SCHEDULE_INITIAL_DELAY, SCHEDULE_PERIOD, TimeUnit.MINUTES);
             } catch (Exception e) {
                 ClouderaManagerImpalaQuerySource.LOGGER.error("Task context exception", e);
             }
