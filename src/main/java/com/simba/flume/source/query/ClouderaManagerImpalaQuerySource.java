@@ -216,7 +216,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             String strDateTo = SDF.format(dateTo);
 
             // get query end time, default to query one hour per scheduler
-            calendar.add(Calendar.MINUTE, -2);
+            calendar.add(Calendar.MINUTE, -1);
             Date dateFrom = calendar.getTime();
             String strDateFrom = SDF.format(dateFrom);
 
@@ -261,9 +261,14 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                     query.setStatement(summary.getStatement());
                     query.setQueryType(summary.getQueryType());
                     query.setQueryState(summary.getQueryState());
-                    query.setStartTime(SDF.format(summary.getStartTime()));
-                    query.setEndTime(SDF.format(summary.getEndTime()));
-                    query.setRowsProduced(summary.getRowsProduced().toString());
+
+                    Date startTime = summary.getStartTime();
+                    query.setStartTime(startTime != null ? SDF.format(startTime) : "");
+                    Date endTime = summary.getEndTime();
+                    query.setEndTime(endTime != null ? SDF.format(endTime) : "");
+
+                    Long rowsProduced = summary.getRowsProduced();
+                    query.setRowsProduced(rowsProduced != null ? rowsProduced.toString() : "");
 
                     Map<String, String> attributes = summary.getAttributes();
                     query.setThreadCpuTimePercentage(attributes.get("thread_cpu_time_percentage"));
@@ -321,7 +326,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                     headers.put("query_id", queryId);
                     this.source.getChannelProcessor().processEvent(EventBuilder.withBody(query.toString(), Charset.forName("UTF-8"), headers));
                 } catch (Exception e) {
-                    ClouderaManagerImpalaQuerySource.LOGGER.error("Transform " + queryId + "exception", e);
+                    ClouderaManagerImpalaQuerySource.LOGGER.error("Transform [" + queryId + "] exception", e);
                 }
             }
             Date end = new Date();
