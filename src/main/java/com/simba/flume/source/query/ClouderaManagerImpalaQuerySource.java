@@ -6,6 +6,7 @@ import com.cloudera.api.model.ApiImpalaQuery;
 import com.cloudera.api.model.ApiImpalaQueryDetailsResponse;
 import com.cloudera.api.model.ApiImpalaQueryResponse;
 import com.cloudera.api.v4.ImpalaQueriesResource;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.flume.ChannelException;
 import org.apache.flume.Context;
@@ -77,7 +78,15 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
 
     @Override
     public void configure(Context context) {
+        this.cmHost = context.getString("cmHost");
+        Preconditions.checkState(this.cmHost != null, "The parameter cmHost must be specified");
 
+        this.cmPort = context.getInteger("cmPort", 80);
+        this.cmEnableTLS = context.getBoolean("cmEnableTLS", false);
+        this.cmUsername = context.getString("cmUsername", "");
+        this.cmPassword = context.getString("cmPassword", "");
+        this.cmClusterName = context.getString("cmClusterName", "cluster");
+        this.cmServiceName = context.getString("cmServiceName", "impala");
     }
 
     @Override
@@ -89,7 +98,6 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
         this.threadShouldStop.set(false);
         context.handlerService = this.handlerService;
         context.source = this;
-        context.shouldStop = this.threadShouldStop;
         this.thread = new Thread(context);
         this.thread.start();
         LOGGER.debug("Source started");
@@ -178,17 +186,19 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 // get query scope
                 QueryScope scope = getQueryScope();
 
+                ClouderaManagerImpalaQuerySource.LOGGER.info("Current query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime());
+
                 // get query summary and details
                 processEvent(scope);
 
-                Random random = new Random();
-                int randomNum = random.nextInt(100);
-                String text = "Hello World2 :" + random.nextInt(100);  //实际需要传的内容
-                HashMap<String, String> header = new HashMap<>();
-                header.put("id", Integer.toString(randomNum));   //将id--value放入到header中
-                this.source.getChannelProcessor().processEvent(EventBuilder.withBody(text, Charset.forName("UTF-8"), header));//prcessEvent()将数据传上去
+//                Random random = new Random();
+//                int randomNum = random.nextInt(100);
+//                String text = "Hello World2 :" + random.nextInt(100);  //实际需要传的内容
+//                HashMap<String, String> header = new HashMap<>();
+//                header.put("id", Integer.toString(randomNum));   //将id--value放入到header中
+//                this.source.getChannelProcessor().processEvent(EventBuilder.withBody(text, Charset.forName("UTF-8"), header));//prcessEvent()将数据传上去
             } catch (ChannelException e) {
-                ClouderaManagerImpalaQuerySource.LOGGER.debug("channel exception", e);
+                ClouderaManagerImpalaQuerySource.LOGGER.debug("Channel exception", e);
             }
         }
 
@@ -204,13 +214,11 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             // get query start time
             Date dateTo = calendar.getTime();
             String strDateTo = SDF.format(dateTo);
-            System.out.println(strDateTo);
 
             // get query end time, default to query one hour per scheduler
-            calendar.add(Calendar.HOUR_OF_DAY, -1);
+            calendar.add(Calendar.MINUTE, -2);
             Date dateFrom = calendar.getTime();
             String strDateFrom = SDF.format(dateFrom);
-            System.out.println(strDateFrom);
 
             return new QueryScope(strDateFrom, strDateTo);
         }
@@ -222,7 +230,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             Map<String, ApiImpalaQuery> querySummaryMap = new HashMap<>();
             // get query ids
             while (true) {
-                ApiImpalaQueryResponse response = this.queryReource.getImpalaQueries(this.source.getCmServiceName(), "", scope.getStartTime(), scope.getEndTime(), 100, offset++);
+                ApiImpalaQueryResponse response = this.queryReource.getImpalaQueries(this.source.getCmServiceName(), "", scope.getStartTime(), scope.getEndTime(), 500, offset++);
                 List<ApiImpalaQuery> queries = response.getQueries();
                 if (queries.isEmpty()) {
                     break;
@@ -233,6 +241,8 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 }
             }
 
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query summary numbers: " + querySummaryMap.size());
+
             // get query details
             Map<String, String> queryDetailsMap = new HashMap<>();
             for (String queryId : querySummaryMap.keySet()) {
@@ -240,10 +250,12 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 queryDetailsMap.put(queryId, response.getDetails());
             }
 
-            List<Event> events = new ArrayList<>();
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query details numbers: " + queryDetailsMap.size());
+
+            CustomImpalaQuery query = new CustomImpalaQuery();
+            Map<String, String> headers = new HashMap<>();
             for (String queryId : querySummaryMap.keySet()) {
                 ApiImpalaQuery summary = querySummaryMap.get(queryId);
-                CustomImpalaQuery query = new CustomImpalaQuery();
                 query.setQueryId(summary.getQueryId());
                 query.setStatement(summary.getStatement());
                 query.setQueryType(summary.getQueryType());
@@ -305,15 +317,12 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 query.setDurationMillis("" + summary.getDurationMillis());
                 query.setDetails(queryDetailsMap.get(queryId));
 
-                Map<String, String> headers = new HashMap<>();
                 headers.put("query_id", queryId);
-                events.add(EventBuilder.withBody(query.toString(), Charset.forName("UTF-8"), headers));
+                this.source.getChannelProcessor().processEvent(EventBuilder.withBody(query.toString(), Charset.forName("UTF-8"), headers));
             }
-            this.source.getChannelProcessor().processEventBatch(events);
-
             Date end = new Date();
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info(Thread.currentThread().getName() + " : " + start + " : " + end + " : " + events.size());
+            ClouderaManagerImpalaQuerySource.LOGGER.info(Thread.currentThread().getName() + " : " + start + " : " + end);
         }
 
         private static class QueryScope {
@@ -338,19 +347,18 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
     private static class TaskContext implements Runnable {
         private ScheduledExecutorService handlerService;
         private ClouderaManagerImpalaQuerySource source;
-        private AtomicBoolean shouldStop;
 
         @Override
         public void run() {
-            ClouderaManagerImpalaQuerySource.LOGGER.debug("Schedule handler starting");
+            ClouderaManagerImpalaQuerySource.LOGGER.debug("Task context starting");
 
             try {
-                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), 0, 30, TimeUnit.MINUTES);
+                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), 0, 10, TimeUnit.MINUTES);
             } catch (Exception e) {
-                ClouderaManagerImpalaQuerySource.LOGGER.error("Handle data exception", e);
+                ClouderaManagerImpalaQuerySource.LOGGER.error("Task context exception", e);
             }
 
-            ClouderaManagerImpalaQuerySource.LOGGER.debug("Schedule handler exiting");
+            ClouderaManagerImpalaQuerySource.LOGGER.debug("Task context exiting");
         }
     }
 }
