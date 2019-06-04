@@ -357,7 +357,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             ClouderaManagerImpalaQuerySource.LOGGER.debug("Task context starting");
 
             try {
-                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), 0, 10, TimeUnit.MINUTES);
+                handlerService.scheduleAtFixedRate(new CustomTaskHandler(source), 0, 30, TimeUnit.MINUTES);
             } catch (Exception e) {
                 ClouderaManagerImpalaQuerySource.LOGGER.error("Task context exception", e);
             }
