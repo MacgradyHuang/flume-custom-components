@@ -10,6 +10,7 @@
 
     <properties>
         <flume.version>1.9.0</flume.version>
+        <cloudera-manager-api.version>5.14.0</cloudera-manager-api.version>
     </properties>
 
     <dependencies>
@@ -26,6 +27,12 @@
             <artifactId>flume-ng-configuration</artifactId>
             <version>${flume.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.cloudera.api</groupId>
+            <artifactId>cloudera-manager-api</artifactId>
+            <version>${cloudera-manager-api.version}</version>
         </dependency>
 
     </dependencies>
