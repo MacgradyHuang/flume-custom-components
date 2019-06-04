@@ -241,7 +241,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 }
             }
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info("Query summary numbers: " + querySummaryMap.size());
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Query summary numbers: " + querySummaryMap.size());
 
             // get query details
             Map<String, String> queryDetailsMap = new HashMap<>();
@@ -250,7 +250,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
                 queryDetailsMap.put(queryId, response.getDetails());
             }
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info("Query details numbers: " + queryDetailsMap.size());
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Query details numbers: " + queryDetailsMap.size());
 
             CustomImpalaQuery query = new CustomImpalaQuery();
             Map<String, String> headers = new HashMap<>();
@@ -326,7 +326,7 @@ public class ClouderaManagerImpalaQuerySource extends AbstractSource implements 
             }
             Date end = new Date();
 
-            ClouderaManagerImpalaQuerySource.LOGGER.info(Thread.currentThread().getName() + " : " + start + " : " + end);
+            ClouderaManagerImpalaQuerySource.LOGGER.info("Query scope: " + scope.getStartTime() + " ~ " + scope.getEndTime() + ", Spent " + (end.getTime() - start.getTime()) / 1000 + "s");
         }
 
         private static class QueryScope {
