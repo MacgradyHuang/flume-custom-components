@@ -12,6 +12,6 @@ public class Constants {
     public static final Integer TIME_DIFF = 8;
     public static final Integer SCHEDULE_INITIAL_DELAY = 0;
     public static final Integer SCHEDULE_PERIOD = 60;
-    public static final Integer MINUTES_PER_TASK = 2;
+    public static final Integer MINUTES_PER_TASK = 60;
 
 }

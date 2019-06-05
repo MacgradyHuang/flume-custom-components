@@ -14,14 +14,12 @@
     </properties>
 
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/org.apache.flume/flume-ng-core -->
         <dependency>
             <groupId>org.apache.flume</groupId>
             <artifactId>flume-ng-core</artifactId>
             <version>${flume.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.flume/flume-ng-configuration -->
         <dependency>
             <groupId>org.apache.flume</groupId>
             <artifactId>flume-ng-configuration</artifactId>
@@ -34,12 +32,6 @@
             <artifactId>cloudera-manager-api</artifactId>
             <version>${cloudera-manager-api.version}</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>commons-configuration</groupId>-->
-<!--            <artifactId>commons-configuration</artifactId>-->
-<!--            <version>1.6</version>-->
-<!--        </dependency>-->
-
     </dependencies>
 
     <build>
