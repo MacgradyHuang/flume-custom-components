@@ -24,3 +24,8 @@ Fetch impala query information from cloudera manager by http protocol. Fetch the
 |cmServiceName |     impala	  | The impala service name of ClouderaManager |
 
 
+## Usage
+
+
+
+
